@@ -1,0 +1,23 @@
+{
+  "name": "fileversex",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma full-stack para gestión, organización y administración de archivos digitales.",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=web",
+    "dev:api": "npm run dev --workspace=api",
+    "build:web": "npm run build --workspace=web",
+    "build:api": "npm run build --workspace=api"
+  },
+  "keywords": [
+    "file-management",
+    "react",
+    "typescript",
+    "express",
+    "postgresql"
+  ],
+  "license": "MIT"
+}

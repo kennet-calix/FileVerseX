@@ -120,3 +120,50 @@ export async function updateUserProfile(
       user.fecha_registro,
   }
 }
+
+export async function updateUserProfilePhoto(
+  idUsuario: number,
+  fileName: string,
+) {
+  const user =
+    await Usuario.findByPk(
+      idUsuario,
+    )
+
+  if (!user) {
+    throw new Error(
+      'USER_NOT_FOUND',
+    )
+  }
+
+  user.foto_perfil =
+    fileName
+
+  await user.save()
+
+  return {
+    id_usuario:
+      user.id_usuario,
+
+    nombre_completo:
+      user.nombre_completo,
+
+    email:
+      user.email,
+
+    descripcion:
+      user.descripcion,
+
+    foto_perfil:
+      user.foto_perfil,
+
+    id_rol:
+      user.id_rol,
+
+    esta_bloqueado:
+      user.esta_bloqueado,
+
+    fecha_registro:
+      user.fecha_registro,
+  }
+}

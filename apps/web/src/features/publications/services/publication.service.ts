@@ -21,45 +21,19 @@ export interface PublicationAuthor {
 export interface Publication {
   id_publicacion: number
   id_usuario: number
-
-  tipo_contenido:
-    PublicationContentType
-
-  id_archivo:
-    number | null
-
-  id_coleccion:
-    number | null
-
-  alcance:
-    PublicationScope
-
-  esta_activa:
-    boolean
-
-  fecha_publicacion:
-    string
-
-  fecha_actualizacion:
-    string
-
-  nombre_contenido:
-    string
-
-  tipo_mime:
-    string | null
-
-  autor:
-    PublicationAuthor | null
-
-  total_likes:
-    number
-
-  total_comentarios:
-    number
-
-  usuario_dio_like:
-    boolean
+  tipo_contenido: PublicationContentType
+  id_archivo: number | null
+  id_coleccion: number | null
+  alcance: PublicationScope
+  esta_activa: boolean
+  fecha_publicacion: string
+  fecha_actualizacion: string
+  nombre_contenido: string
+  tipo_mime: string | null
+  autor: PublicationAuthor | null
+  total_likes: number
+  total_comentarios: number
+  usuario_dio_like: boolean
 }
 
 export interface PublicationRecipient {
@@ -78,11 +52,8 @@ export interface PublicationComment {
   id_comentario: number
   id_publicacion: number
   id_usuario: number
-
   contenido: string
-
   fecha_comentario: string
-
   usuario?: CommentUser | null
 }
 
@@ -99,17 +70,11 @@ interface ApiResponse<T> {
 
 function getToken(): string {
   const token =
-    localStorage.getItem(
-      'fileversex_token',
-    ) ??
-    sessionStorage.getItem(
-      'fileversex_token',
-    )
+    localStorage.getItem('fileversex_token') ??
+    sessionStorage.getItem('fileversex_token')
 
   if (!token) {
-    throw new Error(
-      'No existe una sesión activa',
-    )
+    throw new Error('No existe una sesión activa')
   }
 
   return token
@@ -121,36 +86,22 @@ async function getErrorMessage(
 ) {
   try {
     const data =
-      (await response.json()) as
-        ApiErrorResponse
+      (await response.json()) as ApiErrorResponse
 
-    return (
-      data.error?.message ??
-      defaultMessage
-    )
+    return data.error?.message ?? defaultMessage
   } catch {
     return defaultMessage
   }
 }
 
-export async function getPublicationsRequest(): Promise<
-  Publication[]
-> {
-  const token =
-    getToken()
-
-  const response =
-    await fetch(
-      `${API_URL}/publications`,
-      {
-        method: 'GET',
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
-      },
-    )
+export async function getPublicationsRequest(): Promise<Publication[]> {
+  const token = getToken()
+  const response = await fetch(`${API_URL}/publications`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
 
   if (!response.ok) {
     throw new Error(
@@ -162,56 +113,31 @@ export async function getPublicationsRequest(): Promise<
   }
 
   const result =
-    (await response.json()) as
-      ApiResponse<Publication[]>
+    (await response.json()) as ApiResponse<Publication[]>
 
   return result.data
 }
 
 export async function createPublicationRequest(
-  tipoContenido:
-    PublicationContentType,
-
-  idContenido:
-    number,
-
-  alcance:
-    PublicationScope,
-
-  destinatarios:
-    number[] = [],
+  tipoContenido: PublicationContentType,
+  idContenido: number,
+  alcance: PublicationScope,
+  destinatarios: number[] = [],
 ): Promise<Publication> {
-  const token =
-    getToken()
-
-  const response =
-    await fetch(
-      `${API_URL}/publications`,
-      {
-        method: 'POST',
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-
-          'Content-Type':
-            'application/json',
-        },
-
-        body:
-          JSON.stringify({
-            tipo_contenido:
-              tipoContenido,
-
-            id_contenido:
-              idContenido,
-
-            alcance,
-
-            destinatarios,
-          }),
-      },
-    )
+  const token = getToken()
+  const response = await fetch(`${API_URL}/publications`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      tipo_contenido: tipoContenido,
+      id_contenido: idContenido,
+      alcance,
+      destinatarios,
+    }),
+  })
 
   if (!response.ok) {
     throw new Error(
@@ -223,46 +149,28 @@ export async function createPublicationRequest(
   }
 
   const result =
-    (await response.json()) as
-      ApiResponse<Publication>
+    (await response.json()) as ApiResponse<Publication>
 
   return result.data
 }
 
 export async function updatePublicationRequest(
-  idPublicacion:
-    number,
-
-  alcance:
-    PublicationScope,
-
-  destinatarios:
-    number[] = [],
+  idPublicacion: number,
+  alcance: PublicationScope,
+  destinatarios: number[] = [],
 ): Promise<Publication> {
-  const token =
-    getToken()
-
-  const response =
-    await fetch(
-      `${API_URL}/publications/${idPublicacion}`,
-      {
-        method: 'PUT',
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-
-          'Content-Type':
-            'application/json',
-        },
-
-        body:
-          JSON.stringify({
-            alcance,
-            destinatarios,
-          }),
+  const token = getToken()
+  const response = await fetch(
+    `${API_URL}/publications/${idPublicacion}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-    )
+      body: JSON.stringify({ alcance, destinatarios }),
+    },
+  )
 
   if (!response.ok) {
     throw new Error(
@@ -274,32 +182,24 @@ export async function updatePublicationRequest(
   }
 
   const result =
-    (await response.json()) as
-      ApiResponse<Publication>
+    (await response.json()) as ApiResponse<Publication>
 
   return result.data
 }
 
 export async function deactivatePublicationRequest(
-  idPublicacion:
-    number,
+  idPublicacion: number,
 ): Promise<Publication> {
-  const token =
-    getToken()
-
-  const response =
-    await fetch(
-      `${API_URL}/publications/${idPublicacion}`,
-      {
-        method:
-          'DELETE',
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
+  const token = getToken()
+  const response = await fetch(
+    `${API_URL}/publications/${idPublicacion}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    )
+    },
+  )
 
   if (!response.ok) {
     throw new Error(
@@ -311,32 +211,24 @@ export async function deactivatePublicationRequest(
   }
 
   const result =
-    (await response.json()) as
-      ApiResponse<Publication>
+    (await response.json()) as ApiResponse<Publication>
 
   return result.data
 }
 
 export async function togglePublicationLikeRequest(
-  idPublicacion:
-    number,
+  idPublicacion: number,
 ): Promise<boolean> {
-  const token =
-    getToken()
-
-  const response =
-    await fetch(
-      `${API_URL}/publications/${idPublicacion}/like`,
-      {
-        method:
-          'POST',
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
+  const token = getToken()
+  const response = await fetch(
+    `${API_URL}/publications/${idPublicacion}/like`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    )
+    },
+  )
 
   if (!response.ok) {
     throw new Error(
@@ -348,36 +240,24 @@ export async function togglePublicationLikeRequest(
   }
 
   const result =
-    (await response.json()) as
-      ApiResponse<{
-        liked: boolean
-      }>
+    (await response.json()) as ApiResponse<{ liked: boolean }>
 
   return result.data.liked
 }
 
 export async function getPublicationCommentsRequest(
-  idPublicacion:
-    number,
-): Promise<
-  PublicationComment[]
-> {
-  const token =
-    getToken()
-
-  const response =
-    await fetch(
-      `${API_URL}/publications/${idPublicacion}/comments`,
-      {
-        method:
-          'GET',
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
+  idPublicacion: number,
+): Promise<PublicationComment[]> {
+  const token = getToken()
+  const response = await fetch(
+    `${API_URL}/publications/${idPublicacion}/comments`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    )
+    },
+  )
 
   if (!response.ok) {
     throw new Error(
@@ -389,45 +269,27 @@ export async function getPublicationCommentsRequest(
   }
 
   const result =
-    (await response.json()) as
-      ApiResponse<
-        PublicationComment[]
-      >
+    (await response.json()) as ApiResponse<PublicationComment[]>
 
   return result.data
 }
 
 export async function createPublicationCommentRequest(
-  idPublicacion:
-    number,
-
-  contenido:
-    string,
+  idPublicacion: number,
+  contenido: string,
 ): Promise<PublicationComment> {
-  const token =
-    getToken()
-
-  const response =
-    await fetch(
-      `${API_URL}/publications/${idPublicacion}/comments`,
-      {
-        method:
-          'POST',
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-
-          'Content-Type':
-            'application/json',
-        },
-
-        body:
-          JSON.stringify({
-            contenido,
-          }),
+  const token = getToken()
+  const response = await fetch(
+    `${API_URL}/publications/${idPublicacion}/comments`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-    )
+      body: JSON.stringify({ contenido }),
+    },
+  )
 
   if (!response.ok) {
     throw new Error(
@@ -439,34 +301,82 @@ export async function createPublicationCommentRequest(
   }
 
   const result =
-    (await response.json()) as
-      ApiResponse<PublicationComment>
+    (await response.json()) as ApiResponse<PublicationComment>
 
   return result.data
 }
 
-export async function getPublicationRecipientsRequest(
-  idPublicacion:
-    number,
-): Promise<
-  PublicationRecipient[]
-> {
-  const token =
-    getToken()
-
-  const response =
-    await fetch(
-      `${API_URL}/publications/${idPublicacion}/recipients`,
-      {
-        method:
-          'GET',
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
+export async function updatePublicationCommentRequest(
+  idPublicacion: number,
+  idComentario: number,
+  contenido: string,
+): Promise<PublicationComment> {
+  const token = getToken()
+  const response = await fetch(
+    `${API_URL}/publications/${idPublicacion}/comments/${idComentario}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ contenido }),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        'No fue posible editar el comentario',
+      ),
     )
+  }
+
+  const result =
+    (await response.json()) as ApiResponse<PublicationComment>
+
+  return result.data
+}
+
+export async function deletePublicationCommentRequest(
+  idPublicacion: number,
+  idComentario: number,
+): Promise<void> {
+  const token = getToken()
+  const response = await fetch(
+    `${API_URL}/publications/${idPublicacion}/comments/${idComentario}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        'No fue posible eliminar el comentario',
+      ),
+    )
+  }
+}
+
+export async function getPublicationRecipientsRequest(
+  idPublicacion: number,
+): Promise<PublicationRecipient[]> {
+  const token = getToken()
+  const response = await fetch(
+    `${API_URL}/publications/${idPublicacion}/recipients`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  )
 
   if (!response.ok) {
     throw new Error(
@@ -478,10 +388,7 @@ export async function getPublicationRecipientsRequest(
   }
 
   const result =
-    (await response.json()) as
-      ApiResponse<
-        PublicationRecipient[]
-      >
+    (await response.json()) as ApiResponse<PublicationRecipient[]>
 
   return result.data
 }

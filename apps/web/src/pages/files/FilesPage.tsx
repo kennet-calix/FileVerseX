@@ -156,28 +156,58 @@ function FilesPage() {
     }
   }
 
-  async function uploadFile(
-    file: File,
+  async function uploadFiles(
+    selectedFiles: File[],
   ) {
-    if (isUploading) {
+    if (
+      isUploading ||
+      selectedFiles.length === 0
+    ) {
       return
     }
 
     setIsUploading(true)
     setUploadProgress(0)
 
+    let uploadedCount = 0
+
     try {
-      await uploadFileWithProgress(
-        file,
-        (progress) => {
-          setUploadProgress(
-            progress,
-          )
-        },
-      )
+      for (
+        let index = 0;
+        index < selectedFiles.length;
+        index++
+      ) {
+        const file =
+          selectedFiles[index]
+
+        await uploadFileWithProgress(
+          file,
+          (fileProgress) => {
+            const completedProgress =
+              (index /
+                selectedFiles.length) *
+              100
+
+            const currentProgress =
+              fileProgress /
+              selectedFiles.length
+
+            setUploadProgress(
+              Math.round(
+                completedProgress +
+                  currentProgress,
+              ),
+            )
+          },
+        )
+
+        uploadedCount++
+      }
 
       showToast(
-        'Archivo cargado correctamente',
+        uploadedCount === 1
+          ? 'Archivo cargado correctamente'
+          : `${uploadedCount} archivos cargados correctamente`,
         'success',
       )
 
@@ -185,15 +215,19 @@ function FilesPage() {
     } catch (error) {
       if (error instanceof Error) {
         showToast(
-          error.message,
+          uploadedCount > 0
+            ? `${uploadedCount} archivo(s) fueron cargados. ${error.message}`
+            : error.message,
           'error',
         )
       } else {
         showToast(
-          'No fue posible cargar el archivo',
+          'No fue posible completar la carga de los archivos',
           'error',
         )
       }
+
+      await loadFiles()
     } finally {
       setIsUploading(false)
 
@@ -212,18 +246,21 @@ function FilesPage() {
     event:
       ChangeEvent<HTMLInputElement>,
   ) {
-    const selectedFile =
-      event.target.files?.[0]
+    const selectedFiles =
+      Array.from(
+        event.target.files ?? [],
+      )
 
-    if (!selectedFile) {
+    if (
+      selectedFiles.length === 0
+    ) {
       return
     }
 
-    await uploadFile(
-      selectedFile,
+    await uploadFiles(
+      selectedFiles,
     )
   }
-
   function handleDragOver(
     event:
       DragEvent<HTMLDivElement>,
@@ -259,18 +296,21 @@ function FilesPage() {
       return
     }
 
-    const droppedFile =
-      event.dataTransfer.files?.[0]
+    const droppedFiles =
+      Array.from(
+        event.dataTransfer.files ?? [],
+      )
 
-    if (!droppedFile) {
+    if (
+      droppedFiles.length === 0
+    ) {
       return
     }
 
-    await uploadFile(
-      droppedFile,
+    await uploadFiles(
+      droppedFiles,
     )
   }
-
   async function handleDownload(
     file: FileItem,
   ) {
@@ -737,12 +777,13 @@ function FilesPage() {
 
           {isUploading
             ? `Subiendo ${uploadProgress}%`
-            : 'Subir archivo'}
+            : 'Subir archivos'}
         </button>
 
         <input
           ref={inputRef}
           type="file"
+          multiple
           onChange={
             handleFileSelect
           }
@@ -818,10 +859,10 @@ function FilesPage() {
 
         <h2 className="mt-4 text-base font-semibold text-slate-900">
           {isUploading
-            ? 'Cargando archivo'
+            ? 'Cargando archivos'
             : isDragging
-              ? 'Suelta el archivo aquí'
-              : 'Arrastra y suelta un archivo'}
+              ? 'Suelta los archivos aquí'
+              : 'Arrastra y suelta tus archivos'}
         </h2>
 
         {!isUploading && (
@@ -844,7 +885,7 @@ function FilesPage() {
           <div className="mx-auto mt-6 max-w-md">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium text-slate-600">
-                Subiendo archivo
+                Subiendo archivos
               </span>
 
               <span className="text-sm font-semibold text-blue-600">

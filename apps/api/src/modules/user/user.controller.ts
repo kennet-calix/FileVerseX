@@ -10,6 +10,7 @@ import {
   getAvailableUsers,
   getCurrentUser,
   updateUserProfile,
+  updateUserProfilePhoto,
 } from './user.service.js'
 
 export async function getAvailableUsersController(
@@ -256,6 +257,87 @@ export async function updateMyProfileController(
 
         message:
           'No fue posible actualizar el perfil',
+      },
+    })
+  }
+}
+export async function updateMyProfilePhotoController(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+
+      error: {
+        code: 'UNAUTHORIZED',
+        message:
+          'Usuario no autenticado',
+      },
+    })
+  }
+
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+
+      error: {
+        code:
+          'PROFILE_PHOTO_REQUIRED',
+
+        message:
+          'Debes seleccionar una imagen',
+      },
+    })
+  }
+
+  try {
+    const user =
+      await updateUserProfilePhoto(
+        req.user.id_usuario,
+        req.file.filename,
+      )
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        'Foto de perfil actualizada correctamente',
+
+      data: {
+        user,
+      },
+    })
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        'USER_NOT_FOUND'
+    ) {
+      return res.status(404).json({
+        success: false,
+
+        error: {
+          code:
+            'USER_NOT_FOUND',
+
+          message:
+            'El usuario no fue encontrado',
+        },
+      })
+    }
+
+    console.error(error)
+
+    return res.status(500).json({
+      success: false,
+
+      error: {
+        code:
+          'INTERNAL_SERVER_ERROR',
+
+        message:
+          'No fue posible actualizar la foto de perfil',
       },
     })
   }

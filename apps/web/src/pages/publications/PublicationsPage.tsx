@@ -11,19 +11,28 @@ import {
   Heart,
   LockKeyhole,
   MessageCircle,
+  MoreVertical,
+  Pencil,
+  Save,
   Send,
+  Trash2,
   Users,
+  X,
   XCircle,
 } from 'lucide-react'
 
 import {
   createPublicationCommentRequest,
+  deletePublicationCommentRequest,
   getPublicationCommentsRequest,
   getPublicationsRequest,
   togglePublicationLikeRequest,
+  updatePublicationCommentRequest,
   type Publication,
   type PublicationComment,
 } from '../../features/publications/services/publication.service'
+
+import { useAuth } from '../../features/auth/hooks/useAuth'
 
 type ToastType =
   | 'success'
@@ -35,6 +44,8 @@ interface ToastState {
 }
 
 function PublicationsPage() {
+  const { user } = useAuth()
+
   const [
     publications,
     setPublications,
@@ -70,6 +81,31 @@ function PublicationsPage() {
   ] = useState<
     Record<number, boolean>
   >({})
+
+  const [
+    openCommentMenu,
+    setOpenCommentMenu,
+  ] = useState<number | null>(null)
+
+  const [
+    editingCommentId,
+    setEditingCommentId,
+  ] = useState<number | null>(null)
+
+  const [
+    editingCommentText,
+    setEditingCommentText,
+  ] = useState('')
+
+  const [
+    savingCommentId,
+    setSavingCommentId,
+  ] = useState<number | null>(null)
+
+  const [
+    deletingCommentId,
+    setDeletingCommentId,
+  ] = useState<number | null>(null)
 
   const [
     isLoading,
@@ -366,6 +402,159 @@ function PublicationsPage() {
           'error',
         )
       }
+    }
+  }
+
+  function startEditingComment(
+    comment: PublicationComment,
+  ) {
+    setEditingCommentId(
+      comment.id_comentario,
+    )
+    setEditingCommentText(
+      comment.contenido,
+    )
+    setOpenCommentMenu(null)
+  }
+
+  function cancelEditingComment() {
+    setEditingCommentId(null)
+    setEditingCommentText('')
+  }
+
+  async function handleUpdateComment(
+    idPublication: number,
+    comment: PublicationComment,
+  ) {
+    const text =
+      editingCommentText.trim()
+
+    if (!text) {
+      showToast(
+        'El comentario no puede estar vacío',
+        'error',
+      )
+      return
+    }
+
+    try {
+      setSavingCommentId(
+        comment.id_comentario,
+      )
+
+      const updated =
+        await updatePublicationCommentRequest(
+          idPublication,
+          comment.id_comentario,
+          text,
+        )
+
+      setComments((current) => ({
+        ...current,
+        [idPublication]:
+          (current[idPublication] ?? []).map(
+            (item) =>
+              item.id_comentario ===
+              comment.id_comentario
+                ? {
+                    ...item,
+                    ...updated,
+                    usuario:
+                      updated.usuario ??
+                      item.usuario,
+                  }
+                : item,
+          ),
+      }))
+
+      cancelEditingComment()
+      showToast(
+        'Comentario actualizado correctamente',
+        'success',
+      )
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : 'No fue posible editar el comentario',
+        'error',
+      )
+    } finally {
+      setSavingCommentId(null)
+    }
+  }
+
+  async function handleDeleteComment(
+    idPublication: number,
+    comment: PublicationComment,
+  ) {
+    const confirmed =
+      window.confirm(
+        '¿Seguro que deseas eliminar este comentario? Esta acción no se puede deshacer.',
+      )
+
+    if (!confirmed) {
+      setOpenCommentMenu(null)
+      return
+    }
+
+    try {
+      setDeletingCommentId(
+        comment.id_comentario,
+      )
+      setOpenCommentMenu(null)
+
+      await deletePublicationCommentRequest(
+        idPublication,
+        comment.id_comentario,
+      )
+
+      setComments((current) => ({
+        ...current,
+        [idPublication]:
+          (current[idPublication] ?? []).filter(
+            (item) =>
+              item.id_comentario !==
+              comment.id_comentario,
+          ),
+      }))
+
+      setPublications((current) =>
+        current.map((item) =>
+          item.id_publicacion ===
+          idPublication
+            ? {
+                ...item,
+                total_comentarios:
+                  Math.max(
+                    0,
+                    (item.total_comentarios ?? 0) - 1,
+                  ),
+              }
+            : item,
+        ),
+      )
+
+      if (
+        editingCommentId ===
+        comment.id_comentario
+      ) {
+        cancelEditingComment()
+      }
+
+      showToast(
+        'Comentario eliminado correctamente',
+        'success',
+      )
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : 'No fue posible eliminar el comentario',
+        'error',
+      )
+    } finally {
+      setDeletingCommentId(null)
     }
   }
 
@@ -796,51 +985,190 @@ function PublicationsPage() {
                             </p>
                           ) : (
                             publicationComments.map(
-                              (
-                                comment,
-                              ) => {
+                              (comment) => {
                                 const commentAuthor =
                                   comment.usuario
                                     ?.nombre_completo ??
                                   `Usuario #${comment.id_usuario}`
+
+                                const isOwner =
+                                  user?.id_usuario ===
+                                  comment.id_usuario
+
+                                const isAdmin =
+                                  user?.id_rol === 1
+
+                                const canEdit =
+                                  isOwner
+
+                                const canDelete =
+                                  isOwner || isAdmin
+
+                                const isEditing =
+                                  editingCommentId ===
+                                  comment.id_comentario
+
+                                const isSaving =
+                                  savingCommentId ===
+                                  comment.id_comentario
+
+                                const isDeleting =
+                                  deletingCommentId ===
+                                  comment.id_comentario
 
                                 return (
                                   <div
                                     key={
                                       comment.id_comentario
                                     }
-                                    className="flex gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4"
+                                    className="relative flex gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4"
                                   >
-
                                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">
-
                                       {getInitials(
                                         commentAuthor,
                                       )}
                                     </div>
 
                                     <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                          <p className="text-sm font-semibold text-slate-900">
+                                            {commentAuthor}
+                                          </p>
 
-                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                          <span className="text-xs text-slate-400">
+                                            {formatDate(
+                                              comment.fecha_comentario,
+                                            )}
+                                          </span>
+                                        </div>
 
-                                        <p className="text-sm font-semibold text-slate-900">
-                                          {
-                                            commentAuthor
-                                          }
-                                        </p>
+                                        {(canEdit || canDelete) && (
+                                          <div className="relative shrink-0">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setOpenCommentMenu(
+                                                  (current) =>
+                                                    current ===
+                                                    comment.id_comentario
+                                                      ? null
+                                                      : comment.id_comentario,
+                                                )
+                                              }
+                                              disabled={
+                                                isSaving ||
+                                                isDeleting
+                                              }
+                                              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                              title="Opciones del comentario"
+                                            >
+                                              <MoreVertical
+                                                size={18}
+                                              />
+                                            </button>
 
-                                        <span className="text-xs text-slate-400">
-                                          {formatDate(
-                                            comment.fecha_comentario,
-                                          )}
-                                        </span>
+                                            {openCommentMenu ===
+                                              comment.id_comentario && (
+                                              <div className="absolute right-0 top-9 z-20 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                                                {canEdit && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      startEditingComment(
+                                                        comment,
+                                                      )
+                                                    }
+                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                                                  >
+                                                    <Pencil
+                                                      size={15}
+                                                    />
+                                                    Editar
+                                                  </button>
+                                                )}
+
+                                                {canDelete && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      handleDeleteComment(
+                                                        publication.id_publicacion,
+                                                        comment,
+                                                      )
+                                                    }
+                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                                                  >
+                                                    <Trash2
+                                                      size={15}
+                                                    />
+                                                    Eliminar
+                                                  </button>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
 
-                                      <p className="mt-1 break-words text-sm leading-6 text-slate-700">
-                                        {
-                                          comment.contenido
-                                        }
-                                      </p>
+                                      {isEditing ? (
+                                        <div className="mt-3 space-y-3">
+                                          <textarea
+                                            value={
+                                              editingCommentText
+                                            }
+                                            onChange={(event) =>
+                                              setEditingCommentText(
+                                                event.target.value,
+                                              )
+                                            }
+                                            maxLength={1000}
+                                            rows={3}
+                                            autoFocus
+                                            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                          />
+
+                                          <div className="flex justify-end gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={
+                                                cancelEditingComment
+                                              }
+                                              disabled={isSaving}
+                                              className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                                            >
+                                              <X size={15} />
+                                              Cancelar
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleUpdateComment(
+                                                  publication.id_publicacion,
+                                                  comment,
+                                                )
+                                              }
+                                              disabled={
+                                                isSaving ||
+                                                !editingCommentText.trim()
+                                              }
+                                              className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                              <Save size={15} />
+                                              {isSaving
+                                                ? 'Guardando...'
+                                                : 'Guardar'}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <p className="mt-1 break-words text-sm leading-6 text-slate-700">
+                                          {isDeleting
+                                            ? 'Eliminando comentario...'
+                                            : comment.contenido}
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
                                 )

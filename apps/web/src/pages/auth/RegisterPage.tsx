@@ -71,31 +71,36 @@ function RegisterPage() {
     },
   })
 
-  const password =
-    watch('password') ?? ''
+const password =
+  watch('password') ?? ''
 
-  const passwordRequirements = useMemo(
-    () => [
-      {
-        label: 'Mínimo 8 caracteres',
-        valid: password.length >= 8,
-      },
-      {
-        label: 'Una letra mayúscula',
-        valid: /[A-Z]/.test(password),
-      },
-      {
-        label: 'Una letra minúscula',
-        valid: /[a-z]/.test(password),
-      },
-      {
-        label: 'Un número',
-        valid: /[0-9]/.test(password),
-      },
-    ],
-    [password],
-  )
-
+const passwordRequirements = useMemo(
+  () => [
+    {
+      label: 'Mínimo 8 caracteres',
+      valid: password.length >= 8,
+    },
+    {
+      label: 'Máximo 16 caracteres',
+      valid:
+        password.length > 0 &&
+        password.length <= 16,
+    },
+    {
+      label: 'Una letra mayúscula',
+      valid: /[A-Z]/.test(password),
+    },
+    {
+      label: 'Una letra minúscula',
+      valid: /[a-z]/.test(password),
+    },
+    {
+      label: 'Un número',
+      valid: /[0-9]/.test(password),
+    },
+  ],
+  [password],
+)
   const handleImageChange = (
     event: ChangeEvent<HTMLInputElement>,
   ) => {

@@ -1120,6 +1120,106 @@ export async function obtenerComentarios(
 
 /*
  * ============================================================
+ * ACTUALIZAR COMENTARIO
+ * ============================================================
+ */
+export async function actualizarComentario(
+  id_publicacion: number,
+  id_comentario: number,
+  id_usuario: number,
+  contenido: string,
+) {
+  const texto = contenido.trim()
+
+  if (!texto) {
+    throw new Error('El comentario no puede estar vacío')
+  }
+
+  if (texto.length > 1000) {
+    throw new Error('El comentario no puede superar los 1000 caracteres')
+  }
+
+  const publicacion = await verificarAccesoPublicacion(id_publicacion, id_usuario)
+  if (!publicacion) {
+    throw new Error('No tienes acceso a esta publicación')
+  }
+
+  const comentario = await Comentario.findOne({
+    where: { id_comentario, id_publicacion, id_usuario },
+  })
+
+  if (!comentario) {
+    throw new Error('El comentario no existe o no tienes permiso para editarlo')
+  }
+
+  comentario.contenido = texto
+  await comentario.save()
+
+  const usuario = await Usuario.findByPk(id_usuario, {
+    attributes: ['id_usuario', 'nombre_completo', 'foto_perfil'],
+  })
+
+  return {
+    ...comentario.toJSON(),
+    usuario: usuario
+      ? {
+          id_usuario: usuario.id_usuario,
+          nombre_completo: usuario.nombre_completo,
+          foto_perfil: usuario.foto_perfil,
+        }
+      : null,
+  }
+}
+
+/*
+ * ============================================================
+ * ELIMINAR COMENTARIO
+ * ============================================================
+ */
+export async function eliminarComentario(
+  id_publicacion: number,
+  id_comentario: number,
+  id_usuario: number,
+) {
+  const publicacion = await verificarAccesoPublicacion(id_publicacion, id_usuario)
+  if (!publicacion) {
+    throw new Error('No tienes acceso a esta publicación')
+  }
+
+  const comentario = await Comentario.findOne({
+    where: { id_comentario, id_publicacion },
+  })
+
+  if (!comentario) {
+    throw new Error('El comentario no existe')
+  }
+
+  const usuario = await Usuario.findByPk(id_usuario, {
+    attributes: ['id_usuario', 'id_rol'],
+  })
+
+  if (!usuario) {
+    throw new Error('El usuario no existe')
+  }
+
+  const esAutor = Number(comentario.id_usuario) === Number(id_usuario)
+  const esAdministrador = Number(usuario.id_rol) === 1
+
+  if (!esAutor && !esAdministrador) {
+    throw new Error('No tienes permiso para eliminar este comentario')
+  }
+
+  const resultado = {
+    id_comentario: comentario.id_comentario,
+    id_publicacion: comentario.id_publicacion,
+  }
+
+  await comentario.destroy()
+  return resultado
+}
+
+/*
+ * ============================================================
  * OBTENER DESTINATARIOS
  * ============================================================
  */

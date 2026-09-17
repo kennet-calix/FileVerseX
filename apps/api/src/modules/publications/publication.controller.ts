@@ -3,10 +3,12 @@ import type { Response } from 'express'
 import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js'
 
 import {
+  actualizarComentario,
   actualizarPublicacion,
   crearComentario,
   crearPublicacion,
   desactivarPublicacion,
+  eliminarComentario,
   obtenerComentarios,
   obtenerDestinatarios,
   obtenerPublicacionesVisibles,
@@ -389,6 +391,89 @@ export async function listCommentsController(
           error instanceof Error
             ? error.message
             : 'No fue posible obtener los comentarios',
+      },
+    })
+  }
+}
+
+export async function updateCommentController(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: { message: 'Usuario no autenticado' } })
+    }
+
+    const idPublicacion = Number(req.params.id)
+    const idComentario = Number(req.params.commentId)
+    const { contenido } = req.body
+
+    if (!Number.isInteger(idPublicacion) || idPublicacion <= 0) {
+      return res.status(400).json({ error: { message: 'El identificador de la publicación no es válido' } })
+    }
+
+    if (!Number.isInteger(idComentario) || idComentario <= 0) {
+      return res.status(400).json({ error: { message: 'El identificador del comentario no es válido' } })
+    }
+
+    if (typeof contenido !== 'string') {
+      return res.status(400).json({ error: { message: 'El comentario es obligatorio' } })
+    }
+
+    const comentario = await actualizarComentario(
+      idPublicacion, idComentario, req.user.id_usuario, contenido,
+    )
+
+    return res.status(200).json({
+      message: 'Comentario actualizado correctamente',
+      data: comentario,
+    })
+  } catch (error) {
+    return res.status(400).json({
+      error: {
+        message: error instanceof Error
+          ? error.message
+          : 'No fue posible actualizar el comentario',
+      },
+    })
+  }
+}
+
+export async function deleteCommentController(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: { message: 'Usuario no autenticado' } })
+    }
+
+    const idPublicacion = Number(req.params.id)
+    const idComentario = Number(req.params.commentId)
+
+    if (!Number.isInteger(idPublicacion) || idPublicacion <= 0) {
+      return res.status(400).json({ error: { message: 'El identificador de la publicación no es válido' } })
+    }
+
+    if (!Number.isInteger(idComentario) || idComentario <= 0) {
+      return res.status(400).json({ error: { message: 'El identificador del comentario no es válido' } })
+    }
+
+    const comentario = await eliminarComentario(
+      idPublicacion, idComentario, req.user.id_usuario,
+    )
+
+    return res.status(200).json({
+      message: 'Comentario eliminado correctamente',
+      data: comentario,
+    })
+  } catch (error) {
+    return res.status(400).json({
+      error: {
+        message: error instanceof Error
+          ? error.message
+          : 'No fue posible eliminar el comentario',
       },
     })
   }

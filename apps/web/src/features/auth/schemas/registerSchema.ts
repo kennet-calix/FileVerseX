@@ -20,27 +20,63 @@ export const registerSchema = z
 
     password: z
       .string()
-      .min(8, 'La contraseña debe contener al menos 8 caracteres')
-      .regex(/[A-Z]/, 'Debe incluir al menos una letra mayúscula')
-      .regex(/[a-z]/, 'Debe incluir al menos una letra minúscula')
-      .regex(/[0-9]/, 'Debe incluir al menos un número'),
+      .min(
+        8,
+        'La contraseña debe contener al menos 8 caracteres',
+      )
+      .max(
+        16,
+        'La contraseña no puede contener más de 16 caracteres',
+      )
+      .regex(
+        /[A-Z]/,
+        'Debe incluir al menos una letra mayúscula',
+      )
+      .regex(
+        /[a-z]/,
+        'Debe incluir al menos una letra minúscula',
+      )
+      .regex(
+        /[0-9]/,
+        'Debe incluir al menos un número',
+      ),
 
     confirmPassword: z
       .string()
-      .min(1, 'Debes confirmar la contraseña'),
+      .min(
+        1,
+        'Debes confirmar la contraseña',
+      )
+      .max(
+        16,
+        'La confirmación no puede contener más de 16 caracteres',
+      ),
 
     acceptTerms: z
       .boolean()
-      .refine((value) => value === true, {
-        message: 'Debes aceptar los términos y condiciones',
-      }),
+      .refine(
+        (value) =>
+          value === true,
+        {
+          message:
+            'Debes aceptar los términos y condiciones',
+        },
+      ),
   })
   .refine(
-    (data) => data.password === data.confirmPassword,
+    (data) =>
+      data.password ===
+      data.confirmPassword,
     {
-      message: 'Las contraseñas no coinciden',
-      path: ['confirmPassword'],
+      message:
+        'Las contraseñas no coinciden',
+      path: [
+        'confirmPassword',
+      ],
     },
   )
 
-export type RegisterFormData = z.infer<typeof registerSchema>
+export type RegisterFormData =
+  z.infer<
+    typeof registerSchema
+  >

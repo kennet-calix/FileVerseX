@@ -1,13 +1,16 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react'
 
 import {
+  Camera,
   CheckCircle2,
   Mail,
   Save,
   ShieldCheck,
+  Upload,
   User,
   X,
   XCircle,
@@ -15,6 +18,7 @@ import {
 
 import {
   getMeRequest,
+  updateMyProfilePhotoRequest,
   updateMyProfileRequest,
   type AuthUser,
 } from '../../features/auth/services/auth.service'
@@ -30,11 +34,31 @@ interface ToastState {
   type: ToastType
 }
 
+const API_URL =
+  'http://localhost:3000'
+
+const MAX_PHOTO_SIZE =
+  5 * 1024 * 1024
+
+const ALLOWED_PHOTO_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]
+
 function ProfilePage() {
-  const { updateUser } = useAuth()
+  const { updateUser } =
+    useAuth()
+
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(
+      null,
+    )
 
   const [user, setUser] =
-    useState<AuthUser | null>(null)
+    useState<AuthUser | null>(
+      null,
+    )
 
   const [nombre, setNombre] =
     useState('')
@@ -54,15 +78,45 @@ function ProfilePage() {
     setIsSaving,
   ] = useState(false)
 
+  const [
+    isUploadingPhoto,
+    setIsUploadingPhoto,
+  ] = useState(false)
+
+  const [
+    selectedPhoto,
+    setSelectedPhoto,
+  ] = useState<File | null>(
+    null,
+  )
+
+  const [
+    photoPreview,
+    setPhotoPreview,
+  ] = useState<string | null>(
+    null,
+  )
+
+  const [
+    photoVersion,
+    setPhotoVersion,
+  ] = useState(Date.now())
+
   const [toast, setToast] =
     useState<ToastState | null>(
       null,
     )
 
+  /*
+    CARGAR PERFIL
+  */
   useEffect(() => {
-    loadProfile()
+    void loadProfile()
   }, [])
 
+  /*
+    CERRAR TOAST
+  */
   useEffect(() => {
     if (!toast) {
       return
@@ -80,6 +134,24 @@ function ProfilePage() {
     }
   }, [toast])
 
+  /*
+    LIBERAR PREVISUALIZACIÓN
+  */
+  useEffect(() => {
+    return () => {
+      if (
+        photoPreview &&
+        photoPreview.startsWith(
+          'blob:',
+        )
+      ) {
+        URL.revokeObjectURL(
+          photoPreview,
+        )
+      }
+    }
+  }, [photoPreview])
+
   function showToast(
     message: string,
     type: ToastType,
@@ -90,6 +162,9 @@ function ProfilePage() {
     })
   }
 
+  /*
+    OBTENER PERFIL DESDE API
+  */
   async function loadProfile() {
     setIsLoading(true)
 
@@ -104,7 +179,12 @@ function ProfilePage() {
       )
 
       setDescripcion(
-        currentUser.descripcion ?? '',
+        currentUser.descripcion ??
+          '',
+      )
+
+      setPhotoVersion(
+        Date.now(),
       )
     } catch (error) {
       if (
@@ -125,6 +205,256 @@ function ProfilePage() {
     }
   }
 
+  /*
+    CONSTRUIR URL DE LA FOTO
+    GUARDADA EN EL SERVIDOR
+  */
+  function getProfilePhotoUrl(
+    photo?: string | null,
+  ): string | null {
+    if (
+      !photo ||
+      photo ===
+        'default_profile.png'
+    ) {
+      return null
+    }
+
+    /*
+      Si en algún momento la BD
+      guarda una URL completa.
+    */
+    if (
+      photo.startsWith(
+        'http://',
+      ) ||
+      photo.startsWith(
+        'https://',
+      )
+    ) {
+      return photo
+    }
+
+    return `${API_URL}/uploads/profiles/${encodeURIComponent(
+      photo,
+    )}?v=${photoVersion}`
+  }
+
+  /*
+    ABRIR SELECTOR
+  */
+  function handleOpenPhotoSelector() {
+    if (isUploadingPhoto) {
+      return
+    }
+
+    fileInputRef.current?.click()
+  }
+
+  /*
+    SELECCIONAR FOTO
+  */
+  function handlePhotoSelected(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file =
+      event.target.files?.[0]
+
+    if (!file) {
+      return
+    }
+
+    /*
+      VALIDAR FORMATO
+    */
+    if (
+      !ALLOWED_PHOTO_TYPES.includes(
+        file.type,
+      )
+    ) {
+      showToast(
+        'La foto debe ser JPG, PNG o WEBP',
+        'error',
+      )
+
+      event.target.value = ''
+
+      return
+    }
+
+    /*
+      VALIDAR TAMAÑO
+    */
+    if (
+      file.size >
+      MAX_PHOTO_SIZE
+    ) {
+      showToast(
+        'La foto no puede superar los 5 MB',
+        'error',
+      )
+
+      event.target.value = ''
+
+      return
+    }
+
+    /*
+      ELIMINAR PREVISUALIZACIÓN
+      ANTERIOR
+    */
+    if (
+      photoPreview &&
+      photoPreview.startsWith(
+        'blob:',
+      )
+    ) {
+      URL.revokeObjectURL(
+        photoPreview,
+      )
+    }
+
+    /*
+      CREAR PREVISUALIZACIÓN
+    */
+    const preview =
+      URL.createObjectURL(
+        file,
+      )
+
+    setSelectedPhoto(file)
+
+    setPhotoPreview(
+      preview,
+    )
+  }
+
+  /*
+    CANCELAR FOTO
+  */
+  function handleCancelPhoto() {
+    if (
+      photoPreview &&
+      photoPreview.startsWith(
+        'blob:',
+      )
+    ) {
+      URL.revokeObjectURL(
+        photoPreview,
+      )
+    }
+
+    setSelectedPhoto(null)
+
+    setPhotoPreview(null)
+
+    if (
+      fileInputRef.current
+    ) {
+      fileInputRef.current.value =
+        ''
+    }
+  }
+
+  /*
+    GUARDAR FOTO
+  */
+  async function handleUploadPhoto() {
+    if (!selectedPhoto) {
+      showToast(
+        'Selecciona una fotografía',
+        'error',
+      )
+
+      return
+    }
+
+    setIsUploadingPhoto(true)
+
+    try {
+      const updatedUser =
+        await updateMyProfilePhotoRequest(
+          selectedPhoto,
+        )
+
+      /*
+        IMPORTANTE:
+        La respuesta del backend contiene
+        el nuevo foto_perfil.
+      */
+      setUser(updatedUser)
+
+      /*
+        También actualizamos AuthContext.
+      */
+      updateUser(updatedUser)
+
+      /*
+        Liberamos el blob temporal.
+      */
+      if (
+        photoPreview &&
+        photoPreview.startsWith(
+          'blob:',
+        )
+      ) {
+        URL.revokeObjectURL(
+          photoPreview,
+        )
+      }
+
+      /*
+        Dejamos de utilizar la vista
+        previa. A partir de aquí la foto
+        se obtiene desde el servidor.
+      */
+      setPhotoPreview(null)
+
+      setSelectedPhoto(null)
+
+      /*
+        Cambiamos la versión para evitar
+        caché del navegador.
+      */
+      setPhotoVersion(
+        Date.now(),
+      )
+
+      if (
+        fileInputRef.current
+      ) {
+        fileInputRef.current.value =
+          ''
+      }
+
+      showToast(
+        'Foto de perfil actualizada correctamente',
+        'success',
+      )
+    } catch (error) {
+      if (
+        error instanceof Error
+      ) {
+        showToast(
+          error.message,
+          'error',
+        )
+      } else {
+        showToast(
+          'No fue posible actualizar la foto de perfil',
+          'error',
+        )
+      }
+    } finally {
+      setIsUploadingPhoto(
+        false,
+      )
+    }
+  }
+
+  /*
+    GUARDAR NOMBRE Y DESCRIPCIÓN
+  */
   async function handleSave() {
     const cleanName =
       nombre.trim()
@@ -155,7 +485,8 @@ function ProfilePage() {
     }
 
     if (
-      cleanDescription.length > 250
+      cleanDescription.length >
+      250
     ) {
       showToast(
         'La descripción no puede superar 250 caracteres',
@@ -174,12 +505,8 @@ function ProfilePage() {
           cleanDescription,
         )
 
-      // Actualiza esta página
       setUser(updatedUser)
 
-      // Actualiza todo el sistema:
-      // header, sidebar y cualquier componente
-      // que utilice AuthContext.
       updateUser(updatedUser)
 
       setNombre(
@@ -187,7 +514,8 @@ function ProfilePage() {
       )
 
       setDescripcion(
-        updatedUser.descripcion ?? '',
+        updatedUser.descripcion ??
+          '',
       )
 
       showToast(
@@ -213,6 +541,9 @@ function ProfilePage() {
     }
   }
 
+  /*
+    FORMATEAR FECHA
+  */
   function formatDate(
     date?: string | null,
   ) {
@@ -231,6 +562,9 @@ function ProfilePage() {
     )
   }
 
+  /*
+    CARGANDO
+  */
   if (isLoading) {
     return (
       <div className="flex min-h-96 items-center justify-center">
@@ -245,13 +579,36 @@ function ProfilePage() {
     )
   }
 
+  /*
+    ERROR
+  */
   if (!user) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-        No fue posible cargar la información del usuario.
+        No fue posible cargar la
+        información del usuario.
       </div>
     )
   }
+
+  /*
+    FOTO PERSISTENTE
+  */
+  const serverPhotoUrl =
+    getProfilePhotoUrl(
+      user.foto_perfil,
+    )
+
+  /*
+    Si el usuario está seleccionando
+    una foto nueva, mostramos preview.
+
+    Si no, mostramos la foto guardada
+    en el backend.
+  */
+  const displayedPhoto =
+    photoPreview ??
+    serverPhotoUrl
 
   return (
     <div className="relative space-y-6">
@@ -316,21 +673,139 @@ function ProfilePage() {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Administra tu información personal y los datos de tu cuenta.
+          Administra tu información
+          personal y los datos de tu
+          cuenta.
         </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-        {/* TARJETA DE PERFIL */}
+        {/* TARJETA PERFIL */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-blue-50 text-3xl font-bold text-blue-600">
-              {user.nombre_completo
-                .charAt(0)
-                .toUpperCase()}
+            {/* AVATAR */}
+            <div className="relative">
+              <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-blue-50 text-3xl font-bold text-blue-600 shadow-md">
+                {displayedPhoto ? (
+                  <img
+                    key={
+                      displayedPhoto
+                    }
+                    src={
+                      displayedPhoto
+                    }
+                    alt="Foto de perfil"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  user.nombre_completo
+                    .charAt(0)
+                    .toUpperCase()
+                )}
+              </div>
+
+              <button
+                type="button"
+                title="Cambiar foto"
+                disabled={
+                  isUploadingPhoto
+                }
+                onClick={
+                  handleOpenPhotoSelector
+                }
+                className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Camera
+                  size={17}
+                />
+              </button>
             </div>
 
-            <h2 className="mt-4 text-xl font-bold text-slate-950">
+            {/* INPUT FOTO */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={
+                handlePhotoSelected
+              }
+              className="hidden"
+            />
+
+            {/* CAMBIAR FOTO */}
+            <button
+              type="button"
+              disabled={
+                isUploadingPhoto
+              }
+              onClick={
+                handleOpenPhotoSelector
+              }
+              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Camera
+                size={16}
+              />
+
+              Cambiar foto
+            </button>
+
+            <p className="mt-2 text-xs text-slate-400">
+              JPG, PNG o WEBP ·
+              Máximo 5 MB
+            </p>
+
+            {/* FOTO SELECCIONADA */}
+            {selectedPhoto && (
+              <div className="mt-4 w-full rounded-xl border border-blue-100 bg-blue-50 p-3">
+                <p className="truncate text-xs font-medium text-slate-700">
+                  {
+                    selectedPhoto.name
+                  }
+                </p>
+
+                <div className="mt-3 flex justify-center gap-2">
+                  <button
+                    type="button"
+                    disabled={
+                      isUploadingPhoto
+                    }
+                    onClick={
+                      handleCancelPhoto
+                    }
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <X
+                      size={14}
+                    />
+
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={
+                      isUploadingPhoto
+                    }
+                    onClick={
+                      handleUploadPhoto
+                    }
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Upload
+                      size={14}
+                    />
+
+                    {isUploadingPhoto
+                      ? 'Subiendo...'
+                      : 'Guardar foto'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* DATOS */}
+            <h2 className="mt-5 text-xl font-bold text-slate-950">
               {
                 user.nombre_completo
               }
@@ -346,7 +821,8 @@ function ProfilePage() {
                   size={14}
                 />
 
-                {user.id_rol === 1
+                {user.id_rol ===
+                1
                   ? 'Administrador'
                   : 'Usuario'}
               </span>
@@ -365,6 +841,7 @@ function ProfilePage() {
             </div>
           </div>
 
+          {/* INFORMACIÓN */}
           <div className="mt-6 space-y-5 border-t border-slate-100 pt-5">
             <div className="flex items-start gap-3">
               <Mail
@@ -404,7 +881,7 @@ function ProfilePage() {
           </div>
         </div>
 
-        {/* FORMULARIO */}
+        {/* INFORMACIÓN PERSONAL */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -419,7 +896,8 @@ function ProfilePage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Actualiza tu nombre y descripción.
+                Actualiza tu nombre
+                y descripción.
               </p>
             </div>
           </div>
@@ -437,18 +915,19 @@ function ProfilePage() {
                 disabled={
                   isSaving
                 }
-                onChange={(event) =>
+                onChange={(
+                  event,
+                ) =>
                   setNombre(
-                    event.target.value,
+                    event.target
+                      .value,
                   )
                 }
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
               />
 
               <p className="mt-1 text-right text-xs text-slate-400">
-                {
-                  nombre.length
-                }
+                {nombre.length}
                 /150
               </p>
             </div>
@@ -460,15 +939,16 @@ function ProfilePage() {
               </label>
 
               <input
-                value={
-                  user.email
-                }
+                value={user.email}
                 disabled
                 className="h-11 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-500"
               />
 
               <p className="mt-1 text-xs text-slate-400">
-                El correo electrónico no puede modificarse desde esta sección.
+                El correo
+                electrónico no
+                puede modificarse
+                desde esta sección.
               </p>
             </div>
 
@@ -487,9 +967,12 @@ function ProfilePage() {
                 disabled={
                   isSaving
                 }
-                onChange={(event) =>
+                onChange={(
+                  event,
+                ) =>
                   setDescripcion(
-                    event.target.value,
+                    event.target
+                      .value,
                   )
                 }
                 placeholder="Cuéntanos brevemente sobre ti..."

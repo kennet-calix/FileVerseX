@@ -10,7 +10,12 @@ import {
   getAvailableUsersController,
   getMeController,
   updateMyProfileController,
+  updateMyProfilePhotoController,
 } from './user.controller.js'
+
+import {
+  uploadProfilePhoto,
+} from './profile-photo.middleware.js'
 
 const userRouter =
   Router()
@@ -31,6 +36,15 @@ userRouter.put(
   '/me',
   authMiddleware,
   updateMyProfileController,
+)
+
+userRouter.put(
+  '/me/photo',
+  authMiddleware,
+  uploadProfilePhoto.single(
+    'photo',
+  ),
+  updateMyProfilePhotoController,
 )
 
 export default userRouter

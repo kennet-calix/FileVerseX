@@ -105,6 +105,9 @@ function getToken(): string {
   return token
 }
 
+/*
+  INICIAR SESIÓN
+*/
 export async function loginRequest(
   email: string,
   password: string,
@@ -131,6 +134,9 @@ export async function loginRequest(
   )
 }
 
+/*
+  REGISTRAR USUARIO
+*/
 export async function registerRequest(
   nombreCompleto: string,
   email: string,
@@ -161,6 +167,9 @@ export async function registerRequest(
   )
 }
 
+/*
+  OBTENER USUARIO ACTUAL
+*/
 export async function getMeRequest(
   token?: string,
 ): Promise<AuthUser> {
@@ -187,6 +196,10 @@ export async function getMeRequest(
   return data.data.user
 }
 
+/*
+  ACTUALIZAR INFORMACIÓN
+  DEL PERFIL
+*/
 export async function updateMyProfileRequest(
   nombreCompleto: string,
   descripcion: string,
@@ -222,6 +235,50 @@ export async function updateMyProfileRequest(
   return data.data.user
 }
 
+/*
+  ACTUALIZAR FOTO
+  DE PERFIL
+*/
+export async function updateMyProfilePhotoRequest(
+  photo: File,
+): Promise<AuthUser> {
+  const token =
+    getToken()
+
+  const formData =
+    new FormData()
+
+  formData.append(
+    'photo',
+    photo,
+  )
+
+  const response = await fetch(
+    `${API_URL}/users/me/photo`,
+    {
+      method: 'PUT',
+
+      headers: {
+        Authorization:
+          `Bearer ${token}`,
+      },
+
+      body: formData,
+    },
+  )
+
+  const data =
+    await parseResponse<UserResponse>(
+      response,
+    )
+
+  return data.data.user
+}
+
+/*
+  SOLICITAR RECUPERACIÓN
+  DE CONTRASEÑA
+*/
 export async function forgotPasswordRequest(
   email: string,
 ): Promise<ForgotPasswordResponse> {
@@ -246,6 +303,9 @@ export async function forgotPasswordRequest(
   )
 }
 
+/*
+  RESTABLECER CONTRASEÑA
+*/
 export async function resetPasswordRequest(
   token: string,
   password: string,

@@ -81,6 +81,58 @@ function ResetPasswordPage() {
     setSuccess,
   ] = useState(false)
 
+  /*
+   * ============================================================
+   * REQUISITOS DE CONTRASEÑA
+   * ============================================================
+   */
+
+  const passwordRequirements = [
+    {
+      label:
+        'Mínimo 8 caracteres',
+      valid:
+        password.length >= 8,
+    },
+    {
+      label:
+        'Máximo 16 caracteres',
+      valid:
+        password.length > 0 &&
+        password.length <= 16,
+    },
+    {
+      label:
+        'Una letra mayúscula',
+      valid:
+        /[A-Z]/.test(
+          password,
+        ),
+    },
+    {
+      label:
+        'Una letra minúscula',
+      valid:
+        /[a-z]/.test(
+          password,
+        ),
+    },
+    {
+      label:
+        'Al menos un número',
+      valid:
+        /[0-9]/.test(
+          password,
+        ),
+    },
+  ]
+
+  /*
+   * ============================================================
+   * ENVIAR NUEVA CONTRASEÑA
+   * ============================================================
+   */
+
   async function handleSubmit(
     event:
       React.FormEvent<HTMLFormElement>,
@@ -102,6 +154,16 @@ function ResetPasswordPage() {
     ) {
       setError(
         'La contraseña debe contener al menos 8 caracteres',
+      )
+
+      return
+    }
+
+    if (
+      password.length > 16
+    ) {
+      setError(
+        'La contraseña no puede contener más de 16 caracteres',
       )
 
       return
@@ -179,8 +241,8 @@ function ResetPasswordPage() {
       requestError
     ) {
       if (
-        requestError
-          instanceof Error
+        requestError instanceof
+        Error
       ) {
         setError(
           requestError.message,
@@ -197,6 +259,7 @@ function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+
       <div className="grid min-h-screen lg:grid-cols-2">
 
         {/* PANEL IZQUIERDO */}
@@ -209,8 +272,11 @@ function ResetPasswordPage() {
 
           {/* LOGO */}
           <div className="relative z-10">
+
             <div className="inline-flex rounded-3xl bg-white px-6 py-4 shadow-2xl shadow-blue-950/40">
+
               <Logo className="h-36 w-auto max-w-[620px] xl:h-40" />
+
             </div>
           </div>
 
@@ -218,21 +284,25 @@ function ResetPasswordPage() {
           <div className="relative z-10 max-w-xl">
 
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/80 px-4 py-2 text-sm text-slate-300 backdrop-blur">
+
               <ShieldCheck
                 size={17}
                 className="text-blue-400"
               />
 
               Protección de cuenta
+
             </div>
 
             <h2 className="text-5xl font-semibold leading-[1.08] tracking-tight text-white xl:text-6xl">
+
               Crea una nueva
               <br />
 
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 contraseña segura.
               </span>
+
             </h2>
 
             <p className="mt-7 max-w-lg text-lg leading-8 text-slate-400">
@@ -243,6 +313,7 @@ function ResetPasswordPage() {
 
             {/* BENEFICIOS */}
             <div className="mt-8 flex flex-wrap gap-3">
+
               <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-medium text-slate-300">
                 Contraseña segura
               </span>
@@ -254,11 +325,13 @@ function ResetPasswordPage() {
               <span className="rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-medium text-slate-300">
                 Recuperación rápida
               </span>
+
             </div>
           </div>
 
           {/* FOOTER */}
           <div className="relative z-10 flex items-center justify-between">
+
             <p className="text-sm text-slate-600">
               © 2026 FileVerseX
             </p>
@@ -266,16 +339,20 @@ function ResetPasswordPage() {
             <p className="text-xs text-slate-700">
               Gestión inteligente de archivos
             </p>
+
           </div>
         </section>
 
         {/* PANEL DERECHO */}
         <section className="flex items-center justify-center px-6 py-12 sm:px-10">
+
           <div className="w-full max-w-md">
 
             {/* LOGO MÓVIL */}
             <div className="mb-10 flex justify-center lg:hidden">
+
               <Logo className="h-24 w-auto max-w-[380px] sm:h-28" />
+
             </div>
 
             <Link
@@ -291,6 +368,7 @@ function ResetPasswordPage() {
 
             {/* ENCABEZADO */}
             <div className="mb-8">
+
               <p className="text-sm font-semibold text-blue-600">
                 Recuperación de cuenta
               </p>
@@ -306,6 +384,7 @@ function ResetPasswordPage() {
 
               {email && (
                 <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
+
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                     Cuenta
                   </p>
@@ -313,17 +392,22 @@ function ResetPasswordPage() {
                   <p className="mt-1 text-sm font-semibold text-slate-700">
                     {email}
                   </p>
+
                 </div>
               )}
+
             </div>
 
             {success ? (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
+
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+
                   <CheckCircle2
                     size={32}
                     className="text-emerald-600"
                   />
+
                 </div>
 
                 <h2 className="mt-4 text-lg font-semibold text-emerald-800">
@@ -336,6 +420,7 @@ function ResetPasswordPage() {
                 </p>
 
                 <div className="mx-auto mt-5 h-5 w-5 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
+
               </div>
             ) : (
               <form
@@ -347,6 +432,7 @@ function ResetPasswordPage() {
 
                 {/* NUEVA CONTRASEÑA */}
                 <div>
+
                   <label
                     htmlFor="password"
                     className="mb-2 block text-sm font-medium text-slate-700"
@@ -355,6 +441,7 @@ function ResetPasswordPage() {
                   </label>
 
                   <div className="relative">
+
                     <LockKeyhole
                       size={18}
                       className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
@@ -413,11 +500,13 @@ function ResetPasswordPage() {
                         />
                       )}
                     </button>
+
                   </div>
                 </div>
 
                 {/* CONFIRMAR CONTRASEÑA */}
                 <div>
+
                   <label
                     htmlFor="confirmPassword"
                     className="mb-2 block text-sm font-medium text-slate-700"
@@ -426,6 +515,7 @@ function ResetPasswordPage() {
                   </label>
 
                   <div className="relative">
+
                     <LockKeyhole
                       size={18}
                       className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
@@ -484,31 +574,51 @@ function ResetPasswordPage() {
                         />
                       )}
                     </button>
+
                   </div>
                 </div>
 
                 {/* REQUISITOS */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Requisitos
                   </p>
 
-                  <div className="mt-3 grid gap-2 text-sm text-slate-600">
-                    <p>
-                      • Mínimo 8 caracteres
-                    </p>
+                  <div className="mt-3 grid gap-2">
 
-                    <p>
-                      • Una letra mayúscula
-                    </p>
+                    {passwordRequirements.map(
+                      (
+                        requirement,
+                      ) => (
+                        <div
+                          key={
+                            requirement.label
+                          }
+                          className={`flex items-center gap-2 text-sm ${
+                            requirement.valid
+                              ? 'text-emerald-600'
+                              : 'text-slate-500'
+                          }`}
+                        >
+                          <CheckCircle2
+                            size={16}
+                            className={
+                              requirement.valid
+                                ? 'text-emerald-500'
+                                : 'text-slate-300'
+                            }
+                          />
 
-                    <p>
-                      • Una letra minúscula
-                    </p>
+                          <span>
+                            {
+                              requirement.label
+                            }
+                          </span>
+                        </div>
+                      ),
+                    )}
 
-                    <p>
-                      • Al menos un número
-                    </p>
                   </div>
                 </div>
 
@@ -537,10 +647,13 @@ function ResetPasswordPage() {
                     'Cambiar contraseña'
                   )}
                 </button>
+
               </form>
             )}
+
           </div>
         </section>
+
       </div>
     </div>
   )

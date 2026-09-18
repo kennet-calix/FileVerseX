@@ -14,35 +14,25 @@ export async function obtenerEstadisticasUsuario(
    * ARCHIVOS DEL USUARIO
    * ============================================================
    */
-  const archivos =
-    await Archivo.findAll({
-      where: {
-        id_usuario,
-      },
-      order: [
-        [
-          'contador_descargas',
-          'DESC',
-        ],
-      ],
-    })
+  const archivos = await Archivo.findAll({
+    where: {
+      id_usuario,
+    },
+    order: [
+      ['contador_descargas', 'DESC'],
+    ],
+  })
 
-  const totalArchivos =
-    archivos.length
+  const totalArchivos = archivos.length
 
-  const totalDescargas =
-    archivos.reduce(
-      (
-        total,
-        archivo,
-      ) =>
-        total +
-        Number(
-          archivo.contador_descargas ??
-            0,
-        ),
-      0,
-    )
+  const totalDescargas = archivos.reduce(
+    (total, archivo) =>
+      total +
+      Number(
+        archivo.contador_descargas ?? 0,
+      ),
+    0,
+  )
 
   /*
    * Archivo más descargado
@@ -54,7 +44,7 @@ export async function obtenerEstadisticasUsuario(
 
   /*
    * ============================================================
-   * PUBLICACIONES DEL USUARIO
+   * PUBLICACIONES ACTIVAS DEL USUARIO
    * ============================================================
    */
   const publicaciones =
@@ -74,6 +64,11 @@ export async function obtenerEstadisticasUsuario(
   const totalPublicaciones =
     publicaciones.length
 
+  /*
+   * Esta cantidad se mantiene separada
+   * para mostrar cuántas publicaciones
+   * del usuario son públicas.
+   */
   const publicacionesPublicas =
     publicaciones.filter(
       (publication) =>
@@ -82,10 +77,17 @@ export async function obtenerEstadisticasUsuario(
     )
 
   /*
-   * Los likes y comentarios
-   * estadísticos se contabilizan
-   * únicamente sobre publicaciones
-   * públicas.
+   * ============================================================
+   * LIKES Y COMENTARIOS
+   * ============================================================
+   *
+   * Ahora se contabilizan las interacciones
+   * de TODAS las publicaciones activas
+   * pertenecientes al usuario:
+   *
+   * - públicas
+   * - dirigidas
+   * - privadas
    */
   let totalLikes = 0
   let totalComentarios = 0
@@ -106,47 +108,49 @@ export async function obtenerEstadisticasUsuario(
 
   /*
    * ============================================================
-   * RECORRER PUBLICACIONES PÚBLICAS
+   * RECORRER TODAS LAS PUBLICACIONES ACTIVAS
    * ============================================================
    */
-  for (
-    const publication
-    of publicacionesPublicas
-  ) {
-    const likes =
-      await Like.count({
-        where: {
-          id_publicacion:
-            publication
-              .id_publicacion,
-        },
-      })
+  for (const publication of publicaciones) {
+    /*
+     * Likes de esta publicación
+     */
+    const likes = await Like.count({
+      where: {
+        id_publicacion:
+          publication.id_publicacion,
+      },
+    })
 
+    /*
+     * Comentarios de esta publicación
+     */
     const comentarios =
       await Comentario.count({
         where: {
           id_publicacion:
-            publication
-              .id_publicacion,
+            publication.id_publicacion,
         },
       })
 
+    /*
+     * Acumulamos las interacciones
+     * recibidas por el usuario.
+     */
     totalLikes += likes
+    totalComentarios += comentarios
 
-    totalComentarios +=
-      comentarios
-
+    /*
+     * ==========================================================
+     * OBTENER NOMBRE DEL CONTENIDO
+     * ==========================================================
+     */
     let nombreContenido =
       `Publicación #${publication.id_publicacion}`
 
     /*
-     * ==========================================================
-     * NOMBRE DEL CONTENIDO
-     * ==========================================================
-     */
-
-    /*
-     * Si es archivo
+     * Si la publicación corresponde
+     * a un archivo.
      */
     if (
       publication.tipo_contenido ===
@@ -165,7 +169,8 @@ export async function obtenerEstadisticasUsuario(
     }
 
     /*
-     * Si es colección
+     * Si la publicación corresponde
+     * a una colección.
      */
     if (
       publication.tipo_contenido ===
@@ -195,8 +200,7 @@ export async function obtenerEstadisticasUsuario(
     ) {
       publicacionMasLikes = {
         id_publicacion:
-          publication
-            .id_publicacion,
+          publication.id_publicacion,
 
         nombre_contenido:
           nombreContenido,
@@ -214,12 +218,12 @@ export async function obtenerEstadisticasUsuario(
     if (
       !publicacionMasComentarios ||
       comentarios >
-        publicacionMasComentarios.total_comentarios
+        publicacionMasComentarios
+          .total_comentarios
     ) {
       publicacionMasComentarios = {
         id_publicacion:
-          publication
-            .id_publicacion,
+          publication.id_publicacion,
 
         nombre_contenido:
           nombreContenido,
@@ -235,13 +239,6 @@ export async function obtenerEstadisticasUsuario(
    * USUARIO CON MÁS ARCHIVOS SUBIDOS
    * ============================================================
    */
-
-  /*
-   * Obtenemos todos los archivos
-   * registrados para calcular
-   * cuántos pertenecen a cada
-   * usuario.
-   */
   const todosLosArchivos =
     await Archivo.findAll({
       attributes: [
@@ -252,14 +249,9 @@ export async function obtenerEstadisticasUsuario(
   const archivosPorUsuario =
     new Map<number, number>()
 
-  for (
-    const archivo
-    of todosLosArchivos
-  ) {
+  for (const archivo of todosLosArchivos) {
     const idUsuarioArchivo =
-      Number(
-        archivo.id_usuario,
-      )
+      Number(archivo.id_usuario)
 
     const cantidadActual =
       archivosPorUsuario.get(
@@ -275,14 +267,10 @@ export async function obtenerEstadisticasUsuario(
   let idUsuarioMasArchivos:
     number | null = null
 
-  let mayorCantidadArchivos =
-    0
+  let mayorCantidadArchivos = 0
 
   for (
-    const [
-      idUsuario,
-      cantidad,
-    ]
+    const [idUsuario, cantidad]
     of archivosPorUsuario
   ) {
     if (
@@ -305,8 +293,7 @@ export async function obtenerEstadisticasUsuario(
     } | null = null
 
   if (
-    idUsuarioMasArchivos !==
-    null
+    idUsuarioMasArchivos !== null
   ) {
     const usuario =
       await Usuario.findByPk(
